@@ -1,13 +1,13 @@
 import { productService } from '@/services/productService';
-import { uploadService } from '@/services/uploadService';
 import { Picker } from '@react-native-picker/picker';
-import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { Formik } from 'formik';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Yup from 'yup';
+
+// NOTE: File upload functionality removed - backend only accepts image URLs
 
 // Define the initial shape of the form values
 interface PostValues {
@@ -29,7 +29,7 @@ const PostSchema = Yup.object().shape({
   price: Yup.number().min(0, 'Must be 0 or positive').required('Required'),
   location: Yup.string().required('Required'),
   category: Yup.string().required('Required'),
-  imageUri: Yup.string().nullable().required('An image is required'),
+  imageUri: Yup.string().nullable().required('Image URL is required'),
 });
 
 
@@ -48,43 +48,12 @@ export default function PostWasteItemScreen() {
     imageUri: null,
   };
 
-  // --- Image Picker Functionality ---
-  const pickImage = async (setFieldValue: (field: string, value: any, shouldValidate?: boolean) => void) => {
-    if (Platform.OS !== 'web') {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission required', 'Camera roll permissions are needed to upload images.');
-        return;
-      }
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setFieldValue('imageUri', result.assets[0].uri);
-    }
-  };
-
   // --- Submission Handler ---
   const handleSubmit = async (values: PostValues) => {
     setLoading(true);
     try {
-      // 1. Upload image if it's a local URI
-      let imageUrl = values.imageUri;
-      if (imageUrl && imageUrl.startsWith('file://')) {
-        try {
-          imageUrl = await uploadService.uploadImage(imageUrl);
-        } catch (uploadError) {
-          Alert.alert('Upload Error', 'Failed to upload image. Using URL as-is.');
-        }
-      }
-
-      // 2. Create product
+      // Create product with image URL
+      // NOTE: Backend only accepts image URLs - no file upload
       const productData = {
         title: values.title,
         description: values.description,
@@ -92,7 +61,7 @@ export default function PostWasteItemScreen() {
         location: values.location,
         status: values.status,
         category: values.category,
-        imageUri: imageUrl || '',
+        imageUri: values.imageUri || '',
         name: values.name || undefined, // Optional seller name
       };
 
@@ -124,25 +93,21 @@ export default function PostWasteItemScreen() {
           {({ handleChange, handleBlur, handleSubmit, values, errors, touched, setFieldValue }) => (
             <ScrollView contentContainerStyle={styles.scrollContent}>
 
-              {/* Image Field */}
-              <Text style={styles.label}>Image *</Text>
+              {/* Image URL Field */}
+              <Text style={styles.label}>Image URL *</Text>
+              <Text style={styles.helpText}>
+                Use an external image URL (e.g., from Unsplash, Imgur, etc.)
+              </Text>
               {values.imageUri && (
                 <Image source={{ uri: values.imageUri }} style={styles.imagePreview} />
               )}
-              <TouchableOpacity
-                style={styles.imageButton}
-                onPress={() => pickImage(setFieldValue)}
-              >
-                <Text style={styles.imageButtonText}>
-                  {values.imageUri ? 'Change Image' : 'Pick Image'}
-                </Text>
-              </TouchableOpacity>
               <TextInput
                 style={styles.input}
                 onChangeText={handleChange('imageUri')}
                 onBlur={handleBlur('imageUri')}
                 value={values.imageUri || ''}
-                placeholder="Or enter image URL"
+                placeholder="https://images.unsplash.com/photo-..."
+                autoCapitalize="none"
               />
               {errors.imageUri && touched.imageUri && <Text style={styles.errorText}>{errors.imageUri}</Text>}
 
@@ -283,6 +248,12 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 5,
   },
+  helpText: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
+  },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
@@ -307,18 +278,6 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
-  },
-  imageButton: {
-    backgroundColor: '#4CAF50',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  imageButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   imagePreview: {
     width: '100%',

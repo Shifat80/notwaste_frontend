@@ -10,7 +10,8 @@ export default function Profile() {
 
   useEffect(() => {
     // Refresh user data when screen is focused
-    checkAuth();
+    // Don't clear user state on error to avoid logging out
+    checkAuth(false);
   }, []);
 
   const handleLogout = async () => {

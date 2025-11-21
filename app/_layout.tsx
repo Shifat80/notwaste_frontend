@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from ' expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -39,8 +39,8 @@ export default function RootLayout() {
           {/* Marketplace detail screen */}
           <Stack.Screen name="marketplace/[id]" options={{ headerShown: false }} />
 
-          {/* Ensure all root-level files (login, register, modal, start) 
-            are explicitly defined here in the stack 
+          {/* Ensure all root-level files (login, register, modal, start)
+            are explicitly defined here in the stack
           */}
         </Stack>
         <StatusBar style="auto" />
